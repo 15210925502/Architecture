@@ -1,0 +1,150 @@
+//
+//  LaunchOperation.m
+//  LaunchView
+//
+//  Created by TuBo on 2018/11/8.
+//  Copyright © 2018 TuBur. All rights reserved.
+//
+
+#import "LaunchOperation.h"
+
+@interface LaunchOperation()<WKUIDelegate, WKNavigationDelegate>{
+    CGImageSourceRef gif;
+    NSDictionary *gifProperties;
+    size_t index;
+    size_t count;
+    NSTimer *timer;
+}
+
+@end
+
+@implementation LaunchOperation
+#pragma mark - 通过图片Data数据第一个字节来获取图片扩展名
++ (NSString *)ms_contentTypeForImageData:(NSData *)data {
+    uint8_t c;
+    [data getBytes:&c length:1];
+    switch (c) {
+        case 0xFF:
+            return @"jpeg";
+        case 0x89:
+            return @"png";
+        case 0x47:
+            return @"gif";
+        case 0x49:
+        case 0x4D:
+            return @"tiff";
+        case 0x52:
+            if ([data length] < 12) {
+                return nil;
+            }
+            NSString *testString = [[NSString alloc] initWithData:[data subdataWithRange:NSMakeRange(0, 12)] encoding:NSASCIIStringEncoding];
+            if ([testString hasPrefix:@"RIFF"] && [testString hasSuffix:@"WEBP"]) {
+                return @"webp";
+            }
+            return nil;
+    }
+    return nil;
+}
+
+#pragma mark - 通过图片字符串的截取来获取图片的扩展名
++ (NSString *)ms_contentTypeForImageURL:(NSString *)url {
+    NSString *extensionName = url.pathExtension;
+    if ([extensionName.lowercaseString isEqualToString:@"jpeg"]) {
+        return @"jpeg";
+    }
+    if ([extensionName.lowercaseString isEqualToString:@"gif"]) {
+        return @"gif";
+    }
+    if ([extensionName.lowercaseString isEqualToString:@"png"]) {
+        return @"png";
+    }
+    return nil;
+}
+
+
+#pragma mark - 自定义播放Gif图片(Path)
+- (instancetype)initWithFrame:(CGRect)frame gifImagePath:(NSString *)gifImagePath {
+    self = [super initWithFrame:frame];
+    if (self) {
+        gifProperties = [NSDictionary dictionaryWithObject:[NSDictionary dictionaryWithObject:[NSNumber numberWithInt:0] forKey:(NSString *)kCGImagePropertyGIFLoopCount] forKey:(NSString *)kCGImagePropertyGIFDictionary];
+        gif = CGImageSourceCreateWithURL((CFURLRef)[NSURL fileURLWithPath:gifImagePath], (CFDictionaryRef)gifProperties);
+        count =CGImageSourceGetCount(gif);
+        timer = [NSTimer scheduledTimerWithTimeInterval:0.06 target:self selector:@selector(play) userInfo:nil repeats:YES];/**< 0.12->0.06 */
+        [timer fire];
+    }
+    return self;
+}
+
+#pragma mark - 自定义播放Gif图片(Data)(本地+网络)
+- (instancetype)initWithFrame:(CGRect)frame gifImageData:(NSData *)gifImageData {
+    self = [super initWithFrame:frame];
+    if (self) {
+        gifProperties = [NSDictionary dictionaryWithObject:[NSDictionary dictionaryWithObject:[NSNumber numberWithInt:0] forKey:(NSString *)kCGImagePropertyGIFLoopCount] forKey:(NSString *)kCGImagePropertyGIFDictionary];
+        gif = CGImageSourceCreateWithData((CFDataRef)gifImageData, (CFDictionaryRef)gifProperties);
+        count =CGImageSourceGetCount(gif);
+        timer = [NSTimer scheduledTimerWithTimeInterval:0.06 target:self selector:@selector(play) userInfo:nil repeats:YES];/**< 0.12->0.06 */
+        [timer fire];
+    }
+    return self;
+}
+
+- (void)play {
+    if (count > 0) {
+        index ++;
+        index = index%count;
+        CGImageRef ref = CGImageSourceCreateImageAtIndex(gif, index, (CFDictionaryRef)gifProperties);
+        self.layer.contents = (__bridge id)ref;
+        CFRelease(ref);
+    } else {
+        static dispatch_once_t onceToken;
+        // 只执行一次
+        dispatch_once(&onceToken, ^{
+            NSLog(@"[DHGifImageOperation]:请检测网络或者http协议");
+        });
+    }
+}
+
+- (void)removeFromSuperview {
+    [timer invalidate];
+    timer = nil;
+    [super removeFromSuperview];
+}
+
+#pragma mark - 加载本地GIF图片无需设置NSTimer(自定义播放Gif图片(Name))
+/**< 使用案例: [self.XXX addSubview:[[DHGifImageOperation alloc] initWithFrame:self.adFrame gifImageName:@"XXX.gif"]]; */
+- (instancetype)initWithFrame:(CGRect)frame gifImageName:(NSString *)gifImageName {
+    self = [super initWithFrame:frame];
+    if (self) {
+        NSString *gifImgName = [gifImageName stringByReplacingOccurrencesOfString:@".gif" withString:@""];
+        NSData *gifData = [NSData dataWithContentsOfFile: [[NSBundle mainBundle] pathForResource:gifImgName ofType:@"gif"]];
+        
+        WKWebViewConfiguration *config = [[WKWebViewConfiguration alloc] init];
+        WKPreferences *preferences = [[WKPreferences alloc] init];
+        preferences.minimumFontSize = 10;
+        preferences.javaScriptEnabled = YES;
+        preferences.javaScriptCanOpenWindowsAutomatically = false;
+        config.preferences = preferences;
+        
+        WKWebView *webView = [[WKWebView alloc] initWithFrame:frame configuration:config];
+        webView.navigationDelegate = self;
+        webView.UIDelegate = self;
+        webView.backgroundColor = [UIColor clearColor];
+        webView.scrollView.scrollEnabled = NO;
+        [webView loadData:gifData MIMEType:@"image/gif" characterEncodingName:@"" baseURL:[NSURL URLWithString:@""]];
+        
+        UIButton *clearButton = [UIButton buttonWithType:UIButtonTypeCustom];
+        [clearButton setFrame:webView.frame];
+        [clearButton setBackgroundColor:[UIColor clearColor]];
+        [clearButton addTarget:self action:@selector(activiTap:) forControlEvents:UIControlEventTouchUpInside];
+        clearButton.adjustsImageWhenHighlighted = NO;
+        [webView addSubview:clearButton];
+        [self addSubview:webView];
+    }
+    return self;
+}
+
+- (void)activiTap:(UITapGestureRecognizer*)recognizer{
+    NSLog(@"[DHGifImageOperation.h]:activiTap:recognizer");
+}
+
+@end

@@ -1,0 +1,30 @@
+//
+//  HLDPrefixHeader.pch
+//  框架库
+//
+//  Created by HLD on 2018/9/20.
+//  Copyright © 2018年 HLD. All rights reserved.
+//
+
+#ifndef HLDPrefixHeader_pch
+#define HLDPrefixHeader_pch
+
+#import "Architecture-Swift.h"
+#import "UIImage+SDExtension.h"
+#import "NSDate+Extension.h"
+#import "NSUserDefaults+iCloudSync.h"
+#import "UIViewController+Extension.h"
+#import "NSMutableDictionary+Extension.h"
+#import "LoadingAnimationView.h"
+#import "GTMBase64.h"
+#import "MBProgressHUD+Extension.h"
+#import "UIColor+Extension.h"
+#import "NSObject+Runtime.h"
+#import "UIView+PDBlockGesture.h"
+
+// 弱引用对象
+#define WeakSelf(object)  __weak __typeof(object) weak##object = object;
+// 强引用对象
+#define StrongSelf(object)  __strong __typeof(object) object = weak##object;
+
+#endif /* HLDPrefixHeader_pch */
