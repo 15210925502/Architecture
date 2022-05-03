@@ -1034,12 +1034,12 @@
 		B4F5282A27843EFA00C5E5BD /* NSString */ = {
 			isa = PBXGroup;
 			children = (
-				B4F5282B27843EFA00C5E5BD /* NSString+RegexCategory.m */,
-				B4F5282C27843EFA00C5E5BD /* NSString+PinYin.m */,
 				B4F5282D27843EFA00C5E5BD /* NSString_ConfigurationDefine.h */,
-				B4F5282E27843EFA00C5E5BD /* String+Extension.swift */,
 				B4F5282F27843EFA00C5E5BD /* NSString+RegexCategory.h */,
+				B4F5282B27843EFA00C5E5BD /* NSString+RegexCategory.m */,
 				B4F5283027843EFA00C5E5BD /* NSString+PinYin.h */,
+				B4F5282C27843EFA00C5E5BD /* NSString+PinYin.m */,
+				B4F5282E27843EFA00C5E5BD /* String+Extension.swift */,
 			);
 			path = NSString;
 			sourceTree = "<group>";

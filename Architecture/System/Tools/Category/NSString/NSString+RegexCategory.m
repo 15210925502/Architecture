@@ -13,6 +13,9 @@
 #import <SystemConfiguration/CaptiveNetwork.h>
 #import <CoreText/CoreText.h>
 
+#define CHINESEWORD      @[@"零",@"壹",@"贰",@"叁",@"肆",@"伍",@"陆",@"柒",@"捌",@"玖",@"拾"]
+#define CHINESEWORD1     @[@"零",@"一",@"二",@"三",@"四",@"五",@"六",@"七",@"八",@"九"]
+
 static NSDictionary * s_unicodeToCheatCodes = nil;
 static NSDictionary * s_cheatCodesToUnicode = nil;
 
@@ -909,7 +912,7 @@ NSString *NilNumString(id string) {
     return self;
 }
 
-- (NSString *)encodeUrl{
+- (NSString *)encodedString{
     NSString *charactersToEscape = @":/?#[]@!$ &'()*+,;=\"<>%{}|\\^~`";
     NSCharacterSet *allowedCharacters = [[NSCharacterSet characterSetWithCharactersInString:charactersToEscape] invertedSet];
     NSString *newString = [self stringByAddingPercentEncodingWithAllowedCharacters:allowedCharacters];
@@ -920,6 +923,15 @@ NSString *NilNumString(id string) {
         return newString;
     }
     return self;
+}
+
+- (NSString *)decodedString {
+    CFStringRef decodedCFString = CFURLCreateStringByReplacingPercentEscapesUsingEncoding(kCFAllocatorDefault,
+                                                                                          (__bridge CFStringRef) self,
+                                                                                          CFSTR(""),
+                                                                                          kCFStringEncodingUTF8);
+    NSString *decodedString = [[NSString alloc] initWithString:(__bridge_transfer NSString *)decodedCFString];
+    return (!decodedString) ? @"" : [decodedString stringByReplacingOccurrencesOfString:@"+" withString:@" "];
 }
 
 //笑脸找出对应的内容
@@ -986,16 +998,6 @@ NSString *NilNumString(id string) {
         [str appendFormat:@"%@", s];
     }
     return str;
-}
-
-//Unicode 转字符串
-+ (NSString *)replaceUnicode:(NSString *)unicodeStr{
-    NSString *tempStr1 = [unicodeStr stringByReplacingOccurrencesOfString:@"\\u"withString:@"\\U"];
-    NSString *tempStr2 = [tempStr1 stringByReplacingOccurrencesOfString:@"\"" withString:@"\""];
-    NSString *tempStr3 = [[@"\"" stringByAppendingString:tempStr2] stringByAppendingString:@"\""];
-    NSData *tempData = [tempStr3 dataUsingEncoding:NSUTF8StringEncoding];
-    NSString *returnStr = [NSPropertyListSerialization propertyListWithData:tempData options:NSPropertyListImmutable format:NULL error:NULL];
-    return [returnStr stringByReplacingOccurrencesOfString:@"\r\n"withString:@"\n"];
 }
 
 - (BOOL)pd_stringContainsEmoji{
@@ -1097,16 +1099,16 @@ NSString *NilNumString(id string) {
     return [self stringByReplacingOccurrencesOfString:pattern withString:sub];
 }
 
-+ (NSMutableDictionary *)getURLParameters:(NSString *)urlStr {
+- (NSDictionary *)getDicWithURLParameters {
     // 查找参数
-    NSRange range = [urlStr rangeOfString:@"?"];
+    NSRange range = [self rangeOfString:@"?"];
     if (range.location == NSNotFound) {
         return nil;
     }
     // 以字典形式将参数返回
     NSMutableDictionary *params = [NSMutableDictionary dictionary];
     // 截取参数
-    NSString *parametersString = [urlStr substringFromIndex:range.location + 1];
+    NSString *parametersString = [self substringFromIndex:range.location + 1];
     // 判断参数是单个参数还是多个参数
     if ([parametersString containsString:@"&"]) {
         // 多个参数，分割参数
@@ -1157,7 +1159,20 @@ NSString *NilNumString(id string) {
         // 设置值
         [params setValue:value forKey:key];
     }
-    return params;
+    return params.copy;
+}
+
+- (NSDictionary *)parameterWithUrlString {
+    NSString *urlString = [self stringByRemovingPercentEncoding];
+    NSMutableDictionary *parm = [[NSMutableDictionary alloc] init];
+    NSURL *tempUrl = [NSURL URLWithString:urlString];
+     //传入url创建url组件类
+    NSURLComponents *urlComponents = [[NSURLComponents alloc] initWithString:tempUrl.absoluteString];
+    //回调遍历所有参数，添加入字典
+    [urlComponents.queryItems enumerateObjectsUsingBlock:^(NSURLQueryItem * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+        [parm setObject:obj.value forKey:obj.name];
+    }];
+    return parm;
 }
 
 + (NSString *)lgf_FileSizeFormat:(CGFloat)bsize {
@@ -1259,8 +1274,7 @@ NSString *NilNumString(id string) {
     return string;
 }
 
-// 字典转json字符串方法
-+ (NSString *)convertToJsonData:(NSDictionary *)dict{
++ (NSString *)convertTostr:(NSDictionary *)dict{
     NSError *error;
     NSString *jsonString;
     NSData *jsonData = [NSJSONSerialization dataWithJSONObject:dict options:NSJSONWritingPrettyPrinted error:&error];
@@ -1276,7 +1290,7 @@ NSString *NilNumString(id string) {
     NSRange range2 = {0,mutStr.length};
     //去掉字符串中的换行符
     [mutStr replaceOccurrencesOfString:@"\n" withString:@"" options:NSLiteralSearch range:range2];
-    return mutStr;
+    return mutStr.copy;
 }
 
 + (NSDictionary *)dictionaryWithJsonString:(id _Nullable)JSON{
@@ -1334,13 +1348,19 @@ NSString *NilNumString(id string) {
     return [scan scanInt:&val] && [scan isAtEnd];
 }
 
-+ (NSString *)pd_JsonStringSplitWithDic:(NSDictionary *)splitDic{
++ (NSString *)urlStringWithDic:(NSDictionary *)dic{
     NSString *jsonString = nil;
-    if ([splitDic isKindOfClass:[NSDictionary class]]) {
-        jsonString = [NSString JsonString:jsonString SplitDic:splitDic];
+    if ([dic isKindOfClass:[NSDictionary class]]) {
+        jsonString = [NSString JsonString:jsonString SplitDic:dic];
+        jsonString = [jsonString substringToIndex:jsonString.length - 1];
     }
-    jsonString = [jsonString substringToIndex:jsonString.length - 1];
     return jsonString;
+}
+
++ (NSString *)jsonStringWithDic:(NSDictionary *)dic {
+    NSData *data = [NSJSONSerialization dataWithJSONObject:dic options:NSJSONWritingPrettyPrinted error:nil];
+    NSString *jsonStr = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+    return jsonStr;
 }
 
 + (NSString *)JsonString:(NSString *)jsonString SplitDic:(NSDictionary *)splitDic{
@@ -1365,8 +1385,8 @@ NSString *NilNumString(id string) {
 }
 
 + (NSString *)generateGETAbsoluteURL:(NSString *)url
-                              params:(id)params{
-    NSString *paramsUrlStr = [self pd_JsonStringSplitWithDic:params];
+                              params:(NSDictionary *)paramsDic{
+    NSString *paramsUrlStr = [self urlStringWithDic:paramsDic];
     if (url == nil) {
         return paramsUrlStr;
     }else {
@@ -1377,7 +1397,6 @@ NSString *NilNumString(id string) {
                 if([url rangeOfString:@"?"].location != NSNotFound || [url rangeOfString:@"#"].location != NSNotFound){
                     url = [NSString stringWithFormat:@"%@%@",url,paramsUrlStr];
                 }else{
-                    paramsUrlStr = [paramsUrlStr substringFromIndex:1];
                     url = [NSString stringWithFormat:@"%@?%@",url,paramsUrlStr];
                 }
             }
@@ -1401,29 +1420,6 @@ NSString *NilNumString(id string) {
         return YES;
     }
 }
-
-- (NSString *)urlEncodedString {
-    CFStringRef encodedCFString = CFURLCreateStringByAddingPercentEscapes(kCFAllocatorDefault,
-                                                                          (__bridge CFStringRef) self,
-                                                                          nil,
-                                                                          CFSTR("?!@#$^&%*+,:;='\"`<>()[]{}/\\| "),
-                                                                          kCFStringEncodingUTF8);
-    NSString *encodedString = [[NSString alloc] initWithString:(__bridge_transfer NSString *)encodedCFString];
-    if(!encodedString){
-        encodedString = @"";
-    }
-    return encodedString;
-}
-
-- (NSString *)urlDecodedString {
-    CFStringRef decodedCFString = CFURLCreateStringByReplacingPercentEscapesUsingEncoding(kCFAllocatorDefault,
-                                                                                          (__bridge CFStringRef) self,
-                                                                                          CFSTR(""),
-                                                                                          kCFStringEncodingUTF8);
-    NSString *decodedString = [[NSString alloc] initWithString:(__bridge_transfer NSString *)decodedCFString];
-    return (!decodedString) ? @"" : [decodedString stringByReplacingOccurrencesOfString:@"+" withString:@" "];
-}
-
 
 + (NSString *)wh_translation:(NSString *)arebic{
     NSString *str = arebic;
@@ -1697,8 +1693,13 @@ NSString *NilNumString(id string) {
 }
 
 - (NSString *)ba_removeStringSaveNumber{
-    NSCharacterSet *setToRemove = [[ NSCharacterSet characterSetWithCharactersInString:@"0123456789"] invertedSet];
+    NSCharacterSet *setToRemove = [[NSCharacterSet characterSetWithCharactersInString:@"0123456789"] invertedSet];
     return [[self componentsSeparatedByCharactersInSet:setToRemove] componentsJoinedByString:@""];
+}
+
+- (NSArray *)subStringWithComponentsSeparated:(NSString *)componentsSeparatedStr{
+    NSCharacterSet *set = [NSCharacterSet characterSetWithCharactersInString:componentsSeparatedStr];
+    return [self componentsSeparatedByCharactersInSet:set];
 }
 
 - (BOOL)isVAlidateNumber:(NSString *)number{
@@ -2413,6 +2414,22 @@ NSString *NilNumString(id string) {
     return NO;
 }
 
+- (NSString *)getChineseWord{
+    NSString *chineseWord = @"";
+//    把字符串转换成数字
+    NSInteger yearNumger = [self integerValue];
+    NSInteger temp = (yearNumger - [[self substringFromIndex:1] integerValue]) / [[self substringToIndex:1] integerValue];
+//    数字下标
+    NSInteger tempIndex = 0;
+    for (int index = 0; index < self.length; index ++) {
+        tempIndex = yearNumger / temp;
+        chineseWord = [NSString stringWithFormat:@"%@%@",chineseWord,CHINESEWORD1[tempIndex]];
+        yearNumger = yearNumger % temp;
+        temp = temp / 10;
+    }
+    return chineseWord;
+}
+
 - (NSMutableArray *)findAtRange{
     return [self regularExpression:@"@[-_a-zA-Z0-9\u4E00-\u9FA5]+"];
 }
@@ -2533,13 +2550,13 @@ NSString *NilNumString(id string) {
     return array;
 }
 
-- (NSArray *)getParamsWithUrlString:(NSString *)urlString {
-    if(urlString.length == 0) {
+- (NSArray *)getArrayWithURLParameters {
+    if(self.length == 0) {
         NSLog(@"链接为空！");
         return @[@"",@{}];
     }
     //先截取问号
-    NSArray *allElements = [urlString componentsSeparatedByString:@"?"];
+    NSArray *allElements = [self componentsSeparatedByString:@"?"];
     //待set的参数字典
     NSMutableDictionary *params = [NSMutableDictionary dictionary];
     if(allElements.count == 2) {
@@ -2581,48 +2598,7 @@ NSString *NilNumString(id string) {
         return @[@"",@{}];
     }else{
         NSLog(@"链接不包含参数！");
-        return @[urlString,@{}];
-    }
-}
-
-- (NSDictionary *)parameterWithUrlString:(NSString *)urlString {
-    urlString = [urlString stringByRemovingPercentEncoding];
-    NSMutableDictionary *parm = [[NSMutableDictionary alloc] init];
-    NSURL *tempUrl = [NSURL URLWithString:urlString];
-     //传入url创建url组件类
-    NSURLComponents *urlComponents = [[NSURLComponents alloc] initWithString:tempUrl.absoluteString];
-    //回调遍历所有参数，添加入字典
-    [urlComponents.queryItems enumerateObjectsUsingBlock:^(NSURLQueryItem * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
-        [parm setObject:obj.value forKey:obj.name];
-    }];
-    return parm;
-}
-
-- (NSDictionary *)dictionaryWithUrlString:(NSString *)urlString{
-    if (urlString && urlString.length && [urlString rangeOfString:@"?"].length == 1) {
-        NSArray *array = [urlString componentsSeparatedByString:@"?"];
-        if (array && array.count == 2) {
-            NSString *paramsStr = array[1];
-            if (paramsStr.length) {
-                NSMutableDictionary *paramsDict = [NSMutableDictionary dictionary];
-                NSArray *paramArray = [paramsStr componentsSeparatedByString:@"&"];
-                for (NSString *param in paramArray) {
-                    if (param && param.length) {
-                        NSArray *parArr = [param componentsSeparatedByString:@"="];
-                        if (parArr.count == 2) {
-                            [paramsDict setObject:parArr[1] forKey:parArr[0]];
-                        }
-                    }
-                }
-                return paramsDict;
-            }else{
-                return nil;
-            }
-        }else{
-            return nil;
-        }
-    }else{
-        return nil;
+        return @[self,@{}];
     }
 }
 
@@ -2715,7 +2691,7 @@ NSString *NilNumString(id string) {
     //设置字间距
     [attributeString addAttribute:NSKernAttributeName value:@(wordSpacing) range:NSMakeRange(0,self.length)];
     [attributeString addAttribute:NSFontAttributeName value:font range:NSMakeRange(0,self.length)];
-    NSStringDrawingOptions options = NSStringDrawingUsesLineFragmentOrigin | NSStringDrawingUsesFontLeading;
+    NSStringDrawingOptions options = NSStringDrawingUsesLineFragmentOrigin | NSStringDrawingUsesFontLeading | NSStringDrawingTruncatesLastVisibleLine;
     CGRect rect = [attributeString boundingRectWithSize:size
                                                 options:options
                                                 context:nil];
@@ -2738,6 +2714,7 @@ NSString *NilNumString(id string) {
     CFRelease(myFont);
     CTFramesetterRef frameSetter = CTFramesetterCreateWithAttributedString((CFAttributedStringRef)attStr);
     CGMutablePathRef path = CGPathCreateMutable();
+//    CGFLOAT_MAX     MAXFLOAT
     CGPathAddRect(path, NULL, CGRectMake(0,0,width,INT_MAX));
     CTFrameRef frame = CTFramesetterCreateFrame(frameSetter, CFRangeMake(0, 0), path, NULL);
     NSArray *lines = (NSArray *)CTFrameGetLines(frame);
@@ -2756,6 +2733,11 @@ NSString *NilNumString(id string) {
     CFRelease(frame);
     CFRelease(frameSetter);
     return (NSArray *)linesArray;
+}
+
+//获取一个随机整数，范围在[from,to]，包括from，包括to
++ (NSInteger)getRandomNumber:(NSInteger)from to:(NSInteger)to{
+    return (NSInteger)(from + (arc4random() % (to - from + 1)));
 }
 
 @end

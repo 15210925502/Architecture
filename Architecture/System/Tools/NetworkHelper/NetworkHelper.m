@@ -472,7 +472,7 @@ withCompressionQuality:(CGFloat)compressionQuality
         }
     }
     if(httpMethod == RequestDataTypeGet){
-        NSString *parameterStr = [NSString pd_JsonStringSplitWithDic:resultDic];
+        NSString *parameterStr = [NSString jsonStringWithDic:resultDic];
         NSString *urlStr = [requestUrl stringByAppendingString:@"?"];
         urlStr = [urlStr stringByAppendingString:parameterStr];
         session = [self GET:urlStr

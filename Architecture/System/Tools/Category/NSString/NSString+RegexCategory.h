@@ -174,6 +174,7 @@
 
 #import <Foundation/Foundation.h>
 #import <CoreGraphics/CoreGraphics.h>
+#import <UIKit/UIKit.h>
 
 //__nullable和__nonnull。从字面上我们可以猜到，__nullable表示对象可以是NULL或nil，而__nonnull表示对象不应该为空
 //开始：NS_ASSUME_NONNULL_BEGIN  结束：NS_ASSUME_NONNULL_END  这两个要配合使用，在其区间的属性都会获得nonnull属性
@@ -206,19 +207,20 @@ NSString *NilNumString(id string);//如果是nil返回@"0.00"
 //笑脸找出对应的内容
 - (NSString *)stringByReplacingEmojiUnicodeWithCheatCodes;
 
-//将中文URL转UTF8
-- (NSString *)encodeUrl;
+//将中文字符串转UTF8
+- (NSString *)encodedString;
+//将中文UTF8转字符串
+- (NSString *)decodedString;
 
+//将中文字符串转UTF8
 //iOS中对字符串进行UTF-8编码(encodeURIComponent编码)：输出str字符串的UTF-8格式 如:(华令冬   转成   %E5%8D%8E%E4%BB%A4%E5%86%AC)
 - (NSString *)addingPercentEscapesUsingEncoding;
-
+//将中文UTF8转字符串
 //encodeURIComponent编码进行解码：把str字符串以UTF-8规则进行解码  如:(%E5%8D%8E%E4%BB%A4%E5%86%AC   转成   华令冬)
 - (NSString *)replacingPercentEscapesUsingEncoding;
 
 //字符串 转Unicode
 + (NSString *)utf8ToUnicode:(NSString *)string;
-//Unicode 转字符串
-+ (NSString *)replaceUnicode:(NSString *)unicodeStr;
 //Unicode转化为汉字  如：@"\\u36\\u32\\u31\\u33\\u32\\u5f\\u63\\u6d\\u73\\u5f\\u36\\u32\\u31\\u33\\u32"
 - (NSString *)replaceUnicode;
 
@@ -267,34 +269,28 @@ NSString *NilNumString(id string);//如果是nil返回@"0.00"
 //把所有出现的什么转换成什么
 - (NSString *)stringByReplacingAllInPlace:(NSString *)pattern with:(NSString *)sub;
 
-//传入字典，拼接成请求参数的json字符串返回
-+ (NSString *)pd_JsonStringSplitWithDic:(NSDictionary *)splitDic;
+// 字典转字符串方法  返回格式如：{"key1":"value1","key3":"value3","key2":"value2"}
++ (NSString *)convertTostr:(NSDictionary *)dict;
 
+//拼接成请求链接形式的字符串并返回
++ (NSString *)urlStringWithDic:(NSDictionary *)dic;
 //传入url和参数，来得到一个完整的url get请求地址
-+ (NSString *)generateGETAbsoluteURL:(NSString *)url params:(id)params;
++ (NSString *)generateGETAbsoluteURL:(NSString *)url params:(NSDictionary *)paramsDic;
 
-/**
- 截取URL中的参数
- @param urlStr URL
- @return 字典形式的参数
- */
-+ (NSMutableDictionary *)getURLParameters:(NSString *)urlStr;
-
-/**
- 获取url中的参数并返回
- @param urlString 带参数的url
- @return @[NSString:无参数url, NSDictionary:参数字典]
- */
-- (NSArray *)getParamsWithUrlString:(NSString *)urlString;
-//用encodeURIComponent编码后的url用此方法获取参数
-- (NSDictionary *)parameterWithUrlString:(NSString *)urlString;
-- (NSDictionary *)dictionaryWithUrlString:(NSString *)urlString;
-
-// 字典转JSON字符串方法
-+ (NSString *)convertToJsonData:(NSDictionary *)dict;
-
+//拼接成json字符串返回
++ (NSString *)jsonStringWithDic:(NSDictionary *)dic;
 // JSON字符串转化为字典，JSON可以为字典，字符串或data
 + (NSDictionary *)dictionaryWithJsonString:(id _Nullable)JSON;
+
+//获取URL中的参数并以字典形式返回
+- (NSDictionary *)getDicWithURLParameters;
+//获取URL中的参数  用encodeURIComponent编码后的url用此方法获取参数
+- (NSDictionary *)parameterWithUrlString;
+/**
+ 获取URL中的参数并以数组形式返回
+ @return @[NSString:无参数url, NSDictionary:参数字典]
+ */
+- (NSArray *)getArrayWithURLParameters;
 
 //判断是不是整形
 - (BOOL)mj_isPureInt;
@@ -305,12 +301,6 @@ NSString *NilNumString(id string);//如果是nil返回@"0.00"
  *  @return YES, 包含;
  */
 - (BOOL)containsaString:(NSString *)string;
-
-#pragma mark - url Encode
-- (NSString *)urlEncodedString;
-
-#pragma mark - url Decoded
-- (NSString *)urlDecodedString;
 
 #pragma mark - 格式化系统内存容量显示 B KB MB GB
 + (NSString *)lgf_FileSizeFormat:(CGFloat)bsize;
@@ -371,6 +361,10 @@ NSString *NilNumString(id string);//如果是nil返回@"0.00"
 
 //字符串转成金钱格式  如 57823092.9  结果 57,823,092.9
 - (NSString *)changeFormatwithMoneyAmount;
+
+//字符串按给定字符截取
+//如： "a你1好b你好+X"字符串 按”你好“字符进行截取，返回结果为@[@"a",@"1",@"b",@"",@"+X"]
+- (NSArray *)subStringWithComponentsSeparated:(NSString *)componentsSeparatedStr;
 
 /*! 保留纯数字 */
 - (NSString *)ba_removeStringSaveNumber;
@@ -547,6 +541,9 @@ NSString *NilNumString(id string);//如果是nil返回@"0.00"
 //判断字符串是否有中文
 - (BOOL)isContainChinese;
 
+//把数字字符串转成大写汉字
+- (NSString *)getChineseWord;
+
 /// 获取字符串中 @用户 的 NSTextCheckingResult 数组, result.range 就是 @用户 的range
 - (NSMutableArray *)findAtRange;
 
@@ -604,7 +601,9 @@ NSString *NilNumString(id string);//如果是nil返回@"0.00"
 //获取每行内容
 - (NSArray *)getLinesArrayWihtFont:(UIFont *)font
                           maxWidth:(CGFloat)width;
-                              
+
+//获取一个随机整数，范围在[from,to]，包括from，包括to
++ (NSInteger)getRandomNumber:(NSInteger)from to:(NSInteger)to;
 
 NS_ASSUME_NONNULL_END
 
