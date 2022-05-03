@@ -39,8 +39,10 @@
             UpdateAlert *updateAlert = [[UpdateAlert alloc] initModel:model];
             [[BaseTools getKeyWindow] addSubview:updateAlert];
         }else if([@"2" isEqualToString:model.isForce]){
-            NSDate *data = [NSUserDefaults getUserDefaultsforKey:@"showDate"];
-            BOOL isTodayShow = [NSDate isSameDayWithDate:data unitFlag:PDDateFormatUnitDay];
+            NSDate *date = [NSUserDefaults getUserDefaultsforKey:@"showDate"];
+            BOOL isTodayShow = [NSDate isSameDayWithStartDate:date
+                                                   resultDate:[NSDate date]
+                                                     unitFlag:PDDateFormatUnitDay];
             if (!isTodayShow){
                 UpdateAlert *updateAlert = [[UpdateAlert alloc] initModel:model];
                 [[BaseTools getKeyWindow] addSubview:updateAlert];

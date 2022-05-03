@@ -14,23 +14,23 @@ class BaseTools: NSObject {
     public static let screenWidth = (UIApplication.shared.statusBarOrientation == UIInterfaceOrientation.portrait || UIApplication.shared.statusBarOrientation == UIInterfaceOrientation.portraitUpsideDown) ? UIScreen.main.bounds.size.width : UIScreen.main.bounds.size.height
     public static let screenHeight = (UIApplication.shared.statusBarOrientation == UIInterfaceOrientation.portrait || UIApplication.shared.statusBarOrientation == UIInterfaceOrientation.portraitUpsideDown) ? UIScreen.main.bounds.size.height : UIScreen.main.bounds.size.width
     
-//    字符串转float类型
-//    let version : String = UIDevice.current.systemVersion
-//    print(version.stringToFloat())
-//    print(version._bridgeToObjectiveC().floatValue)
-//    print(CFStringGetDoubleValue(version as CFString))
+    //    字符串转float类型
+    //    let version : String = UIDevice.current.systemVersion
+    //    print(version.stringToFloat())
+    //    print(version._bridgeToObjectiveC().floatValue)
+    //    print(CFStringGetDoubleValue(version as CFString))
     
     //比率
     public static let screenRatio = Float(screenWidth / 375.0)
     //宽和高
     public static func adapted(value:CGFloat) -> CGFloat{
-//        ceilf()：方法为四舍五入,例如：ceilf(6.7) = 7
+        //        ceilf()：方法为四舍五入,例如：ceilf(6.7) = 7
         return CGFloat(Float(value) * BaseTools.screenRatio)
     }
     //判断是否为iphoneX以上机型，或者是否为刘海屏
     public static func isIPhoneXSeries() -> Bool{
         var iPhoneXSeries = false
-//        判断是不是手机
+        //        判断是不是手机
         if UIDevice.current.userInterfaceIdiom == UIUserInterfaceIdiom.phone {
             if #available(iOS 11.0, *) {
                 let keyWinwow = BaseTools.getKeyWindow()
@@ -41,7 +41,7 @@ class BaseTools: NSObject {
         }
         return iPhoneXSeries
     }
-//    获取window
+    //    获取window
     public static func getKeyWindow() -> UIWindow? {
         var window: UIWindow?
         if #available(iOS 13.0, *) {
@@ -76,7 +76,7 @@ class BaseTools: NSObject {
     public static let topBarSafeHeight = CGFloat(BaseTools.isIPhoneXSeries() ? 44.0 : 0)
     /*底部安全区域远离高度,就是iphoneX之前和之后Tabbar高度差*/
     public static let bottomSafeHeight = CGFloat(BaseTools.isIPhoneXSeries() ? 34.0 : 0)
-
+    
     // MARK: 系统相关
     /// Info
     public static let appBundleInfoVersion = Bundle.main.infoDictionary ?? Dictionary()
@@ -111,5 +111,26 @@ class BaseTools: NSObject {
     public static func randomCustom(min: Int, max: Int) -> Int {
         let random = arc4random() % UInt32(max) + UInt32(min)
         return Int(random)
+    }
+    
+    //    获取当前语言
+    static func getCurrentLanguage() -> String {
+        //        方法一
+        //        let defs = UserDefaults.standard
+        //        let languages = defs.object(forKey: "AppleLanguages")
+        //        let preferredLang = (languages! as AnyObject).object(0)
+        
+        //        方法二
+        let preferredLang = Bundle.main.preferredLocalizations.first! as NSString
+        print("当前系统语言:\(preferredLang)")
+        
+        switch String(describing: preferredLang) {
+        case "en-US", "en-CN":
+            return "en"//英文
+        case "zh-Hans-US","zh-Hans-CN","zh-Hant-CN","zh-TW","zh-HK","zh-Hans":
+            return "cn"//中文
+        default:
+            return "en"
+        }
     }
 }

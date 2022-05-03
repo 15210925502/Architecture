@@ -1143,8 +1143,8 @@
 			isa = PBXGroup;
 			children = (
 				B4F5285D27843EFA00C5E5BD /* NSDate+Extension.h */,
-				B4F5285E27843EFA00C5E5BD /* NSDateTimeAgo.bundle */,
 				B4F5285F27843EFA00C5E5BD /* NSDate+Extension.m */,
+				B4F5285E27843EFA00C5E5BD /* NSDateTimeAgo.bundle */,
 			);
 			path = NSDate;
 			sourceTree = "<group>";
@@ -2157,7 +2157,7 @@
 				CURRENT_PROJECT_VERSION = 3900;
 				DEFINES_MODULE = YES;
 				DEVELOPMENT_TEAM = RMQKVYUG8M;
-				GCC_PREFIX_HEADER = "/Users/hualingdong/Documents/同步/iOS作品/作品/项目/Architecture/Architecture/System/HLDPrefixHeader.pch";
+				GCC_PREFIX_HEADER = "$(SRCROOT)/Architecture/System/HLDPrefixHeader.pch";
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Architecture/Info.plist;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -2194,7 +2194,7 @@
 				CURRENT_PROJECT_VERSION = 3900;
 				DEFINES_MODULE = YES;
 				DEVELOPMENT_TEAM = RMQKVYUG8M;
-				GCC_PREFIX_HEADER = "/Users/hualingdong/Documents/同步/iOS作品/作品/项目/Architecture/Architecture/System/HLDPrefixHeader.pch";
+				GCC_PREFIX_HEADER = "$(SRCROOT)/Architecture/System/HLDPrefixHeader.pch";
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Architecture/Info.plist;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
